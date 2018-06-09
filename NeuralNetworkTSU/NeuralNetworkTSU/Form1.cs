@@ -49,7 +49,11 @@ namespace NeuralNetworkTSU
         private void button1_Click_1(object sender, EventArgs e)
         {
 
-            Task.Run(()=>trainer.LoadData(i => UpdateProgressBar.Invoke(i)));
+            Task.Run(()=>
+            {
+                trainer.LoadData(i => this.Invoke(UpdateProgressBar,i));
+                MessageBox.Show("Data loading finished");
+            });
 
 
 
