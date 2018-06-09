@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuralNetworkTSU", "NeuralN
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MNISTViewer", "MNISTViewer\MNISTViewer.csproj", "{81D2064B-9DD8-4651-9D92-A5C6476BC423}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NnCore", "NnCore\NnCore.csproj", "{28B58B3F-FAD4-4FD3-B0F0-8132D996BC78}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{81D2064B-9DD8-4651-9D92-A5C6476BC423}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{81D2064B-9DD8-4651-9D92-A5C6476BC423}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{81D2064B-9DD8-4651-9D92-A5C6476BC423}.Release|Any CPU.Build.0 = Release|Any CPU
+		{28B58B3F-FAD4-4FD3-B0F0-8132D996BC78}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{28B58B3F-FAD4-4FD3-B0F0-8132D996BC78}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{28B58B3F-FAD4-4FD3-B0F0-8132D996BC78}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{28B58B3F-FAD4-4FD3-B0F0-8132D996BC78}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
