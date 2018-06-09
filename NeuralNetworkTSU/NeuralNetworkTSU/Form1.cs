@@ -13,35 +13,32 @@ namespace NeuralNetworkTSU
 {
     public partial class Form1 : Form
     {
-        //TODO:მერე გავიტანო სადმე 
-        static int inputLength = 784; //28 x 28 
-        private string pixelFile = @"..\..\..\Data\train-images.idx3-ubyte";
-        private string labelFile = @"..\..\..\Data\train-labels.idx1-ubyte";
-        List<bool> scoreCard = new List<bool>();
+        public delegate void UpdateProgressBarDelegate(int progress);   // similar to UpdateProgressBar method
 
+        public UpdateProgressBarDelegate UpdateProgressBar;
 
+        // your form's methods and properties here, as usual
 
-
-
+        private void UpdateProgressBarMethod(int progress)
+        {
+            progressBar1.Value = progress;
+            progressBar1.Refresh();
+        }
+        private NNTrainer trainer = new NNTrainer();
         private void button3_Click(object sender, EventArgs e)
         {
             var inputImage = (Bitmap)pictureBox1.Image;
-
-            var di = DigitImage.FromBitmap(inputImage, 1);
-
-            var response = network.Query(di.pixels.SelectMany(su => su.Select(ConvertGrayScaleByteToDouble)).ToArray());
-
-            var max = response.Max(x => x);
-            var f = response.ToList().IndexOf(max);
+            var f = trainer.DetectNumberInImage(inputImage);
             lblDetectedNumber.Text = f.ToString();
-
         }
+
+
 
         Bitmap DrawArea;
         public Form1()
         {
+            UpdateProgressBar = new UpdateProgressBarDelegate(UpdateProgressBarMethod);
             InitializeComponent();
-
             DrawArea = new Bitmap(pictureBox1.Size.Width, pictureBox1.Size.Height);
             pictureBox1.Image = DrawArea;
 
@@ -51,56 +48,15 @@ namespace NeuralNetworkTSU
 
         private void button1_Click_1(object sender, EventArgs e)
         {
-            LoadData();
+
+            trainer.LoadData(i => UpdateProgressBar.Invoke(i));
+
+
+
         }
 
-        private NeuralNetwork network;//TODO:
-        private void LoadData()
-        {
-            network = new NeuralNetwork(inputLength, 100, 10, 0.3);
-            var database = MnistDataLoader.LoadData(pixelFile, labelFile);
-            var flattenedArrays = database.Select(i => i.pixels.SelectMany(s => s));
-            var toDoubles = flattenedArrays.Select(
-                ar => ar.Select(
-                    byt => ConvertGrayScaleByteToDouble(byt))
-                )
-                .ToArray();
-            var targets = database.Select(i => Convert.ToInt32(i.label)).ToArray();
 
 
-
-
-            for (var index = 0; index < toDoubles.Length; index++)
-            {
-                var doubleArray = toDoubles[index];
-                var correctAnswer = targets[index];
-                var target = Enumerable.Range(0, 10).Select(x => 0.01).ToArray();
-                target[correctAnswer] = 0.99;
-
-                network.Train(doubleArray.ToArray(), target);
-            }
-        }
-
-        private static double ConvertGrayScaleByteToDouble(byte byt)
-        {
-            return ((byt) / 255.0) * 0.99 + 0.01;
-        }
-
-        void ToImage()
-        {
-            //int nextIndex = int.Parse(textBox4.Text);
-            //DigitImage currImage = trainImages[nextIndex];
-
-            //int mag = int.Parse(comboBox1.SelectedItem.ToString()); // magnification
-            //Bitmap bitMap = DigitImage.MakeBitmap(currImage, mag);
-        }
-        private static double[] NormalizeInput(string[] input)
-        {
-            return input
-                .Select(double.Parse)
-                .Select(y => (y / 255) * 0.99 + 0.01)
-                .ToArray();
-        }
 
         private Point? _Previous = null;
         private void pictureBox1_MouseDown(object sender, MouseEventArgs e)
@@ -138,6 +94,73 @@ namespace NeuralNetworkTSU
         {
             pictureBox1.Image = null;
             pictureBox1.Invalidate();
+        }
+    }
+
+    public class NNTrainer
+    {
+        //TODO:მერე გავიტანო სადმე 
+        static int inputLength = 784; //28 x 28 
+        private string pixelFile = @"..\..\..\Data\train-images.idx3-ubyte";
+        private string labelFile = @"..\..\..\Data\train-labels.idx1-ubyte";
+        private NeuralNetwork network;//TODO:
+        public int DetectNumberInImage(Bitmap inputImage)
+        {
+            var di = DigitImage.FromBitmap(inputImage, 1);
+
+            var response = network.Query(di.pixels.SelectMany(su => su.Select(ConvertGrayScaleByteToDouble)).ToArray());
+
+            var max = response.Max(x => x);
+            var f = response.ToList().IndexOf(max);
+            return f;
+        }
+
+        //public event EventHandler<int> DataLoadingPercentChanged;
+        private static double ConvertGrayScaleByteToDouble(byte byt)
+        {
+            return ((byt) / 255.0) * 0.99 + 0.01;
+        }
+        public void LoadData(Action<int> progressUpdater)
+        {
+            network = new NeuralNetwork(inputLength, 100, 10, 0.3);
+            var database = MnistDataLoader.LoadData(pixelFile, labelFile);
+            var flattenedArrays = database.Select(i => i.pixels.SelectMany(s => s));
+            var toDoubles = flattenedArrays.Select(
+                    ar => ar.Select(
+                        byt => ConvertGrayScaleByteToDouble(byt))
+                )
+                .ToArray();
+            var targets = database.Select(i => Convert.ToInt32(i.label)).ToArray();
+
+
+
+            var percent = 0;
+
+            for (var index = 0; index < toDoubles.Length; index++)
+            {
+                var doubleArray = toDoubles[index];
+                var correctAnswer = targets[index];
+                var target = Enumerable.Range(0, 10).Select(x => 0.01).ToArray();
+                target[correctAnswer] = 0.99;
+
+                percent = NotifyDataLoadingProgress(index, toDoubles.Length, percent, progressUpdater);
+
+                network.Train(doubleArray.ToArray(), target);
+            }
+        }
+
+        private int NotifyDataLoadingProgress(int index, int length, int percent, Action<int> progressUpdater)
+        {
+            var currentPercent = (int)((index / Convert.ToDouble(length)) * 100);
+            {
+                if (currentPercent != percent)
+                {
+                    progressUpdater.Invoke(currentPercent);
+                }
+
+                percent = currentPercent;
+            }
+            return percent;
         }
     }
 }
