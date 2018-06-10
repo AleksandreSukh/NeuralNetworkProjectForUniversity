@@ -3,29 +3,55 @@ using System.Linq;
 
 namespace NnCore
 {
+    [Serializable]
     public class NeuralNetwork
     {
-        private readonly double _learningRate;
+        public NeuralNetwork()
+        {
+            //For Serializer
+        }
+
+        private double _learningRate;
         private Matrix _weightHiddenOutput;
         private Matrix _weightInputHidden;
 
         public NeuralNetwork(int numberOfInputNodes, int numberOfHiddenNodes, int numberOfOutputNodes, double learningRate)
         {
-            _learningRate = learningRate;
+            LearningRate = learningRate;
 
-            _weightInputHidden = Matrix.Create(numberOfHiddenNodes, numberOfInputNodes);
-            _weightHiddenOutput = Matrix.Create(numberOfOutputNodes, numberOfHiddenNodes);
+            WeightInputHidden = Matrix.Create(numberOfHiddenNodes, numberOfInputNodes);
+            WeightHiddenOutput = Matrix.Create(numberOfOutputNodes, numberOfHiddenNodes);
 
             RandomizeWeights();
         }
+
+        //Public properties to make it serializable
+        public Matrix WeightInputHidden
+        {
+            get { return _weightInputHidden; }
+            set { _weightInputHidden = value; }
+        }
+
+        public Matrix WeightHiddenOutput
+        {
+            get { return _weightHiddenOutput; }
+            set { _weightHiddenOutput = value; }
+        }
+
+        public double LearningRate
+        {
+            get { return _learningRate; }
+            set { _learningRate = value; }
+        }
+        //!
 
         private void RandomizeWeights()
         {
             var rnd = new Random();
 
             //distribute -0.5 to 0.5.
-            _weightHiddenOutput.Initialize(() => rnd.NextDouble() - 0.5);
-            _weightInputHidden.Initialize(() => rnd.NextDouble() - 0.5);
+            WeightHiddenOutput.Initialize(() => rnd.NextDouble() - 0.5);
+            WeightInputHidden.Initialize(() => rnd.NextDouble() - 0.5);
         }
 
         public void Train(double[] inputs, double[] targets)
@@ -33,23 +59,23 @@ namespace NnCore
             var inputSignals = ConvertToMatrix(inputs);
             var targetSignals = ConvertToMatrix(targets);
 
-            var hiddenOutputs = Sigmoid(_weightInputHidden * inputSignals);
-            var finalOutputs = Sigmoid(_weightHiddenOutput * hiddenOutputs);
+            var hiddenOutputs = Sigmoid(WeightInputHidden * inputSignals);
+            var finalOutputs = Sigmoid(WeightHiddenOutput * hiddenOutputs);
 
             var outputErrors = targetSignals - finalOutputs;
 
-            var hiddenErrors = _weightHiddenOutput.Transpose() * outputErrors;
+            var hiddenErrors = WeightHiddenOutput.Transpose() * outputErrors;
 
-            _weightHiddenOutput += _learningRate * outputErrors * finalOutputs * (1.0 - finalOutputs) * hiddenOutputs.Transpose();
-            _weightInputHidden += _learningRate * hiddenErrors * hiddenOutputs * (1.0 - hiddenOutputs) * inputSignals.Transpose();
+            WeightHiddenOutput += LearningRate * outputErrors * finalOutputs * (1.0 - finalOutputs) * hiddenOutputs.Transpose();
+            WeightInputHidden += LearningRate * hiddenErrors * hiddenOutputs * (1.0 - hiddenOutputs) * inputSignals.Transpose();
         }
 
         public double[] Query(double[] inputs)
         {
             var inputSignals = ConvertToMatrix(inputs);
 
-            var hiddenOutputs = Sigmoid(_weightInputHidden * inputSignals);
-            var finalOutputs = Sigmoid(_weightHiddenOutput * hiddenOutputs);
+            var hiddenOutputs = Sigmoid(WeightInputHidden * inputSignals);
+            var finalOutputs = Sigmoid(WeightHiddenOutput * hiddenOutputs);
 
             return finalOutputs.Value.SelectMany(x => x.Select(y => y)).ToArray();
         }

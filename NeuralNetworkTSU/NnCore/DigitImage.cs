@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 
 namespace NnCore
 {
@@ -10,6 +12,12 @@ namespace NnCore
         public int height; // 28
         public byte[][] pixels; // 0(white) - 255(black)
         public byte label; // '0' - '9'
+
+        public DigitImage(int width, int height, IEnumerable<double> flattened, byte label) :
+            this(width, height, PixelArrayFromFlattenedDoubleArray(flattened, width, height), label)
+        {
+
+        }
 
         public DigitImage(int width, int height, byte[][] pixels, byte label)
         {
@@ -48,25 +56,56 @@ namespace NnCore
 
         public static DigitImage FromBitmap(Bitmap image, byte label)
         {
-            byte[][] pixels = new byte[image.Width][];
-            for (var i = 0; i < pixels.Length; i++)
+            int width = image.Width;
+            int height = image.Height;
+
+
+            byte[][] pixels = new byte[height][];
+            for (var i = 0; i < height; ++i)
             {
-                pixels[i] = new byte[image.Height];
+                pixels[i] = new byte[width];
             }
 
             // create a C# Bitmap suitable for display in a PictureBox control
-            int width = image.Width;
-            int height = image.Height;
-            for (int i = 0; i < width; ++i)
+
+            for (int i = 0; i < height; ++i)
             {
-                for (int j = 0; j < height; ++j)
+                for (int j = 0; j < width; ++j)
                 {
-                    var oc = image.GetPixel(i, j);
+                    var oc = image.GetPixel(j, i);
                     var grayScale = (byte)((oc.R * 0.3) + (oc.G * 0.59) + (oc.B * 0.11));
-                    pixels[i][j] = grayScale;
+                    pixels[i][j] = (byte)(255 - grayScale);
                 }
             }
             return new DigitImage(width, height, pixels, label);
+        }
+
+        public static byte[][] PixelArrayFromFlattenedDoubleArray(IEnumerable<double> array, int width, int height)
+        {
+            byte[][] pixels = new byte[height][];
+            for (var i = 0; i < height; ++i)
+            {
+                pixels[i] = new byte[width];
+            }
+            var ar = new List<double>(array);
+            for (int i = 0; i < height; ++i)
+            {
+                //for (int j = 0; j < width; ++j)
+                {
+                    pixels[i] = ar.Take(width).Select(d => ConvertDoubleToGrayScaleByte(d)).ToArray();
+                    ar.RemoveRange(0, width);
+                }
+            }
+            return pixels;
+        }
+
+        public static double ConvertGrayScaleByteToDouble(byte byt)
+        {
+            return ((byt) / 255.0) /** 0.99 + 0.01*/;
+        }
+        public static byte ConvertDoubleToGrayScaleByte(double dbl)
+        {
+            return (byte)(dbl * 255);
         }
     }
 }

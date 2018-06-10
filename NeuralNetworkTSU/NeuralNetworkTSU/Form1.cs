@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using NnCore;
 
 namespace NeuralNetworkTSU
 {
@@ -25,12 +26,18 @@ namespace NeuralNetworkTSU
         private NnTrainer trainer = new NnTrainer();
         private void button3_Click(object sender, EventArgs e)
         {
-            var inputImage = (Bitmap)pictureBox1.Image;
-            if (inputImage == null) inputImage = new Bitmap(pictureBox1.Size.Width, pictureBox1.Size.Height);
+            var inputImage = GetInputImage();
             var f = trainer.DetectNumberInImage(inputImage);
             lblDetectedNumber.Text = f.ToString();
         }
 
+        private Bitmap GetInputImage()
+        {
+            var inputImage = (Bitmap) pictureBox1.Image;
+            if (inputImage == null) inputImage = new Bitmap(pictureBox1.Size.Width, pictureBox1.Size.Height);
+
+            return inputImage;
+        }
 
 
         Bitmap DrawArea;
@@ -47,18 +54,17 @@ namespace NeuralNetworkTSU
 
         private void button1_Click_1(object sender, EventArgs e)
         {
+            TrainNetwork();
+        }
 
+        private void TrainNetwork()
+        {
             Task.Run(() =>
             {
                 trainer.LoadData(i => this.Invoke(UpdateProgressBar, i));
                 MessageBox.Show("Data loading finished");
             });
-
-
-
         }
-
-
 
 
         private Point? _Previous = null;
@@ -99,6 +105,26 @@ namespace NeuralNetworkTSU
         {
             pictureBox1.Image = null;
             pictureBox1.Invalidate();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            TrainNetwork();
+        }
+
+        private void pictureBox1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void pictureBox1_Paint(object sender, PaintEventArgs e)
+        {
+            
+            var mag = DigitImage.MakeBitmap(DigitImage.FromBitmap(new Bitmap(GetInputImage()), 1), 10);
+            pictureBox2.Image = mag;
+
+
+            pictureBox2.Invalidate();
         }
     }
 }

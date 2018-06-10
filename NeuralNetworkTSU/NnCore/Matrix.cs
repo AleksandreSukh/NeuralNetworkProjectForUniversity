@@ -5,9 +5,11 @@ using System.Threading.Tasks;
 
 namespace NnCore
 {
+    [Serializable]
     public class Matrix
     {
-        private readonly double[][] _matrix;
+        public Matrix() { } //For serializer
+        private double[][] _matrix;
 
         private Matrix(int rows, int cols)
         {
@@ -57,7 +59,11 @@ namespace NnCore
             }
         }
 
-        public double[][] Value => _matrix;
+        public double[][] Value
+        {
+            get { return _matrix; }
+            set { _matrix = value; }
+        }
 
         public static Matrix operator -(Matrix a, Matrix b)
         {

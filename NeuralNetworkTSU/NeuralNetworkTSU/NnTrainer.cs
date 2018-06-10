@@ -1,43 +1,54 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using Newtonsoft.Json;
 using NnCore;
 
 namespace NeuralNetworkTSU
 {
     public class NnTrainer
     {
-        //TODO:მერე გავიტანო სადმე 
-        static int inputLength = 784; //28 x 28 
+        private const int imageWidth = 28;
+        private const int imageHeight = 28;
+        private static readonly int inputLength = imageWidth * imageHeight;
         private string pixelFile = @"..\..\..\Data\train-images.idx3-ubyte";
         private string labelFile = @"..\..\..\Data\train-labels.idx1-ubyte";
-        private NeuralNetwork network;//TODO:
+        private NeuralNetwork network;
+
+        private string jsonFilePath = "network.json";
         public int DetectNumberInImage(Bitmap inputImage)
         {
             var di = DigitImage.FromBitmap(inputImage, 1);
 
-            var response = network.Query(di.pixels.SelectMany(su => su.Select(ConvertGrayScaleByteToDouble)).ToArray());
+            var response = network.Query(di.pixels.SelectMany(su => su.Select(DigitImage.ConvertGrayScaleByteToDouble)).ToArray());
 
             var max = response.Max(x => x);
             var f = response.ToList().IndexOf(max);
             return f;
         }
 
-        //public event EventHandler<int> DataLoadingPercentChanged;
-        private static double ConvertGrayScaleByteToDouble(byte byt)
-        {
-            return ((byt) / 255.0) * 0.99 + 0.01;
-        }
         public void LoadData(Action<int> progressUpdater)
         {
+            if (File.Exists(jsonFilePath))
+            {
+                var deserialized = JsonConvert.DeserializeObject<NeuralNetwork>(File.ReadAllText(jsonFilePath));
+                network = deserialized;
+                progressUpdater.Invoke(100);
+                return;
+            }
             network = new NeuralNetwork(inputLength, 100, 10, 0.3);
+
+
+
             var database = MnistDataLoader.LoadData(pixelFile, labelFile);
-            var flattenedArrays = database.Select(i => i.pixels.SelectMany(s => s));
-            var toDoubles = flattenedArrays.Select(
-                    ar => ar.Select(
-                        byt => ConvertGrayScaleByteToDouble(byt))
-                )
-                .ToArray();
+            var toDoubles = database.Select(i => i.pixels.SelectMany(s => s)
+                .Select(
+                    byt => DigitImage.ConvertGrayScaleByteToDouble(byt))).ToArray();
+            //Test2(toDoubles, database);
+
+
             var targets = database.Select(i => Convert.ToInt32(i.label)).ToArray();
 
 
@@ -52,10 +63,32 @@ namespace NeuralNetworkTSU
                 target[correctAnswer] = 0.99;
 
                 percent = NotifyDataLoadingProgress(index, toDoubles.Length, percent, progressUpdater);
-
                 network.Train(doubleArray.ToArray(), target);
             }
+            var networkJson = JsonConvert.SerializeObject(network);
+            File.WriteAllText(jsonFilePath, networkJson);
         }
+
+        private static void Test2(IEnumerable<double>[] toDoubles, DigitImage[] database)
+        {
+            var back = toDoubles.Select(
+                ar => new DigitImage(imageWidth, imageHeight, ar, 1)
+            ).ToArray();
+
+            for (int i = 0; i < database.Length; i++)
+            {
+                var fd = database.ElementAt(i);
+                var fb = back.ElementAt(i);
+                var ser1 = JsonConvert.SerializeObject(fd.pixels);
+                var ser2 = JsonConvert.SerializeObject(fb.pixels);
+                if (ser1 != ser2)
+                {
+                    throw new Exception(
+                    );
+                }
+            }
+        }
+
 
         private int NotifyDataLoadingProgress(int index, int length, int percent, Action<int> progressUpdater)
         {
